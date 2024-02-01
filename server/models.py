@@ -1,13 +1,33 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy_serializer import SerializerMixin
+from flask import Flask, request, make_response, jsonify
+from flask_cors import CORS
+from flask_migrate import Migrate
 
-db = SQLAlchemy()
+from models import db, Movie
 
-class Movie(db.Model, SerializerMixin):
-    __tablename__ = 'movies'
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.json.compact = False
 
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String)
+CORS(app)
+migrate = Migrate(app, db)
 
-    def __repr__(self):
-        return f'<Movie {self.title}>'
+db.init_app(app)
+
+@app.route('/movies', methods=['GET'])
+def movies():
+    if request.method == 'GET':
+        movies = Movie.query.all()
+
+        return make_response(
+            jsonify([movie.to_dict() for movie in movies]),
+            200,
+        )
+
+    return make_response(
+        jsonify({"text": "Method Not Allowed"}),
+        405,
+    ) 
+
+if __name__ == '__main__':
+    app.run(port=5555)
